@@ -1,8 +1,14 @@
-# v2node
-A v2board backend base on moddified xray-core.
+# v2node (修改版)
+
+基于 [wyx2685/v2node](https://github.com/wyx2685/v2node) 的自用修改版本。
+
 一个基于修改版xray内核的V2board节点服务端。
 
-**注意： 本项目需要搭配[修改版V2board](https://github.com/wyx2685/v2board)**
+## 感谢
+
+- [wyx2685/v2node](https://github.com/wyx2685/v2node) - 原版项目
+
+**注意： 本项目搭配自用的 Xboard 路由插件使用**
 
 ## 软件安装
 
@@ -13,7 +19,8 @@ wget -N https://raw.githubusercontent.com/missish/v2node/main/script/install.sh 
 ```
 
 ## 构建
-``` bash
+
+```bash
 GOEXPERIMENT=jsonv2 go build -v -o build_assets/v2node -trimpath -ldflags "-X 'github.com/wyx2685/v2node/cmd.version=$version' -s -w -buildid="
 ```
 
