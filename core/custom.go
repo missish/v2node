@@ -3,6 +3,7 @@ package core
 import (
 	"encoding/json"
 	"net"
+	"sort"
 	"strings"
 
 	panel "github.com/wyx2685/v2node/api/v2board"
@@ -41,6 +42,43 @@ func hasOutboundWithTag(list []*core.OutboundHandlerConfig, tag string) bool {
 		}
 	}
 	return false
+}
+
+// getActionPriority 返回 action 的优先级，数字越小优先级越高
+// 优先级设计：
+//   0: dns - DNS 配置（不生成路由规则）
+//   1: block, protocol - 域名/协议阻止（最高优先级阻止）
+//   2: block_ip, block_port - IP/端口阻止
+//   3: balancer, route - 域名匹配的负载均衡/路由（同级，保持配置顺序）
+//   4: balancer_ip, route_ip - IP 匹配的负载均衡/路由（同级，保持配置顺序）
+//   5: default_out, default_balancer - 兜底规则（最低优先级）
+func getActionPriority(action string) int {
+	switch action {
+	case "dns":
+		return 0
+	case "block", "protocol":
+		return 1
+	case "block_ip", "block_port":
+		return 2
+	case "balancer", "route":
+		return 3
+	case "balancer_ip", "route_ip":
+		return 4
+	case "default_out", "default_balancer":
+		return 5
+	default:
+		return 6
+	}
+}
+
+// sortRoutesByPriority 按优先级排序路由规则
+func sortRoutesByPriority(routes []panel.Route) []panel.Route {
+	sorted := make([]panel.Route, len(routes))
+	copy(sorted, routes)
+	sort.SliceStable(sorted, func(i, j int) bool {
+		return getActionPriority(sorted[i].Action) < getActionPriority(sorted[j].Action)
+	})
+	return sorted
 }
 
 func GetCustomConfig(infos []*panel.NodeInfo) (*dns.Config, []*core.OutboundHandlerConfig, *router.Config, *observatory.Config, error) {
@@ -86,7 +124,9 @@ func GetCustomConfig(infos []*panel.NodeInfo) (*dns.Config, []*core.OutboundHand
 		if len(info.Common.Routes) == 0 {
 			continue
 		}
-		for _, route := range info.Common.Routes {
+		// 按优先级排序路由规则
+		sortedRoutes := sortRoutesByPriority(info.Common.Routes)
+		for _, route := range sortedRoutes {
 			switch route.Action {
 			case "dns":
 				if route.ActionValue == nil {
