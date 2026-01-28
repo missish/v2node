@@ -5,6 +5,7 @@ import (
 	"net"
 	"sort"
 	"strings"
+	"time"
 
 	panel "github.com/wyx2685/v2node/api/v2board"
 	"github.com/xtls/xray-core/app/dns"
@@ -46,12 +47,13 @@ func hasOutboundWithTag(list []*core.OutboundHandlerConfig, tag string) bool {
 
 // getActionPriority 返回 action 的优先级，数字越小优先级越高
 // 优先级设计：
-//   0: dns - DNS 配置（不生成路由规则）
-//   1: block, protocol - 域名/协议阻止（最高优先级阻止）
-//   2: block_ip, block_port - IP/端口阻止
-//   3: balancer, route - 域名匹配的负载均衡/路由（同级，保持配置顺序）
-//   4: balancer_ip, route_ip - IP 匹配的负载均衡/路由（同级，保持配置顺序）
-//   5: default_out, default_balancer - 兜底规则（最低优先级）
+//
+//	0: dns - DNS 配置（不生成路由规则）
+//	1: block, protocol - 域名/协议阻止（最高优先级阻止）
+//	2: block_ip, block_port - IP/端口阻止
+//	3: balancer, route - 域名匹配的负载均衡/路由（同级，保持配置顺序）
+//	4: balancer_ip, route_ip - IP 匹配的负载均衡/路由（同级，保持配置顺序）
+//	5: default_out, default_balancer - 兜底规则（最低优先级）
 func getActionPriority(action string) int {
 	switch action {
 	case "dns":
@@ -376,7 +378,7 @@ func GetCustomConfig(infos []*panel.NodeInfo) (*dns.Config, []*core.OutboundHand
 		observatoryConfig = &observatory.Config{
 			SubjectSelector:   observatoryTags,
 			ProbeUrl:          "https://www.gstatic.com/generate_204",
-			ProbeInterval:     30,
+			ProbeInterval:     int64(10 * time.Second), // 10秒，time.Duration 单位是纳秒
 			EnableConcurrency: true,
 		}
 	}
